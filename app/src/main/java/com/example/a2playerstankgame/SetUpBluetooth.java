@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.Nullable;
@@ -36,6 +37,7 @@ public class SetUpBluetooth extends AppCompatActivity {
     Button btnShowDevices;
     Button btnSend;
     EditText editText;
+    Context context;
 
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final String DEVICE_NAME = "Name: ";
@@ -56,6 +58,13 @@ public class SetUpBluetooth extends AppCompatActivity {
     ArrayList<String> deviceDetails;
     ArrayList<BluetoothDevice> devices;
 
+
+    public SetUpBluetooth(MyBluetoothService myBluetoothService,Context context){
+        this.myBluetoothService = myBluetoothService;
+        this.context = context;
+    }
+
+    public SetUpBluetooth(){}
 
     @Override
     protected void onResume() {
@@ -93,7 +102,10 @@ public class SetUpBluetooth extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.i("SetUpBluetooth","Connect to "+devices.get(position).getName());
-                myBluetoothService.connect(devices.get(position),true);
+                Intent  intent = getIntent().putExtra("connectTo",devices.get(position));
+                setResult(111,intent);
+                finish();
+                //myBluetoothService.connect(devices.get(position),true);
             }
         });
 
@@ -101,7 +113,7 @@ public class SetUpBluetooth extends AppCompatActivity {
             Toast.makeText(this,"Sorry your device dosen't support Bluetooth",Toast.LENGTH_LONG).show();
         }
 
-        myBluetoothService = new MyBluetoothService(getApplicationContext(),mHandler);
+        //myBluetoothService = new MyBluetoothService(getApplicationContext(),mHandler);
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver,filter);
@@ -136,19 +148,25 @@ public class SetUpBluetooth extends AppCompatActivity {
 
     public void sendMessageButton(View v){
 
+        Log.i("SetUpBluetooth","Message sending");
+        //String message = editText.getText().toString();
+        String message = "";
+        sendMessage(message);
+
+        editText.setText("");
+    }
+
+    public void sendMessage(String message){
+
         if(myBluetoothService.getState() != MyBluetoothService.STATE_CONNECTED){
-            Toast.makeText(this,"not connected device",Toast.LENGTH_LONG).show();
+            Toast.makeText(context,"Not connected device",Toast.LENGTH_LONG).show();
             return;
         }
-
-        Log.i("SetUpBluetooth","Message sending");
-        String message = editText.getText().toString();
 
         if(message.length()>0) {
             byte[] send = message.getBytes();
             myBluetoothService.write(send);
-            editText.setText("");
-
+            //editText.setText("");
         }
     }
 
@@ -164,10 +182,12 @@ public class SetUpBluetooth extends AppCompatActivity {
             {
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                deviceDetails.add(device.getName());
-                devices.add(device);
-                Log.i("SetUpBluetooth","Devices found "+device.getName());
-                adapter.notifyDataSetChanged();
+                if(device!=null && device.getName()!=null) {
+                    deviceDetails.add(device.getName());
+                    devices.add(device);
+                    Log.i("SetUpBluetooth", "Devices found " + device.getName());
+                    adapter.notifyDataSetChanged();
+                }
             }
 
         }
@@ -190,52 +210,16 @@ public class SetUpBluetooth extends AppCompatActivity {
     }
 
 
-    @SuppressLint("HandlerLeak")
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_STATE_CHANGE:
-                    switch (msg.arg1){
-                        case MyBluetoothService.STATE_CONNECTED:
-                            Toast.makeText(SetUpBluetooth.this,"Connected",Toast.LENGTH_LONG).show();
-                            deviceDetails.clear();
-                            break;
-                        case MyBluetoothService.STATE_CONNECTING:
-                            Toast.makeText(SetUpBluetooth.this,"Connecting",Toast.LENGTH_LONG).show();
-                            break;
-                        case MyBluetoothService.STATE_LISTEN:
-                        case MyBluetoothService.STATE_NONE:
-                            Toast.makeText(SetUpBluetooth.this,"Not connected",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                    break;
-                case MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
-                    String writeMessage = new String(writeBuf);
-                    deviceDetails.add("Me:  " + writeMessage);
-                    break;
-                case MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    String readMessage = new String(readBuf,0,msg.arg1);
-                    Log.i("SetUpBluetooth","message_read" + readMessage);
-
-                    deviceDetails.add("Connected device: " + readMessage);
-                    break;
-                case MESSAGE_DEVICE_NAME:
-                    break;
-            }
-            adapter.notifyDataSetChanged();
-        }
-    };
-
+    public void disconnect(){
+        bluetoothAdapter.cancelDiscovery();
+        unregisterReceiver(receiver);
+    }
 
     @Override
     protected void onDestroy() {
+        disconnect();
         super.onDestroy();
-        bluetoothAdapter.cancelDiscovery();
-        unregisterReceiver(receiver);
+
     }
 
 }

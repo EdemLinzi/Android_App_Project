@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">2 Players Tank Game</string>
+    <string name="title_activity_gyro_test">GyroTest</string>
 </resources>

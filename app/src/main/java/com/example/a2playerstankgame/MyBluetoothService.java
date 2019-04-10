@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,13 +19,13 @@ import java.util.UUID;
 
 public class MyBluetoothService {
     private static final String TAG = "MY_APP_DEBUG_TAG";
-    BluetoothAdapter bluetoothAdapter;
+    private BluetoothAdapter bluetoothAdapter;
     public static final UUID MY_UUID_SECURE = UUID.fromString("058041fe-9936-4e36-86e9-fcda2be5560d");
     public static final UUID MY_UUID_INSECURE = UUID.fromString("dd846754-f3c8-47da-b764-bbfddbdaa396");
 
-    ConnectedThread connectedThread;
-    ClientThread clientThread;
-    ServerThread serverThreadSecure;
+    private ConnectedThread connectedThread;
+    private ClientThread clientThread;
+    private ServerThread serverThreadSecure;
     //ServerThread serverThreadInsecure;
 
     private int mState;
@@ -36,7 +37,7 @@ public class MyBluetoothService {
     public static final int STATE_CONNECTING = 2;
     public static final int STATE_CONNECTED = 3;
 
-    Context context;
+    private Context context;
 
     public MyBluetoothService(Context myContext,Handler handler){
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -70,7 +71,7 @@ public class MyBluetoothService {
             connectedThread = null;
         }
 
-        if(serverThreadSecure ==null){
+        if(serverThreadSecure == null){
             serverThreadSecure = new ServerThread(true);
             serverThreadSecure.start();
         }
@@ -183,7 +184,7 @@ public class MyBluetoothService {
         //Toast.makeText(context,"Connection Failed",Toast.LENGTH_LONG).show();
 
         mState = STATE_NONE;
-
+        stop();
         updateUserInterface();
 
         MyBluetoothService.this.start();
@@ -192,6 +193,7 @@ public class MyBluetoothService {
     private void connectionLost(){
         //Toast.makeText(context,"Connection Lost",Toast.LENGTH_LONG).show();
         mState = STATE_NONE;
+        stop();
         updateUserInterface();
 
         MyBluetoothService.this.start();
@@ -276,12 +278,10 @@ public class MyBluetoothService {
     private class ServerThread extends Thread {
 
         private static final String NAME = "My_Application";
-        private String socketType;
         private final BluetoothServerSocket mmServerSocket;
 
         public ServerThread(boolean secure) {
 
-            socketType = secure ? "Secure" : "Insecure";
             // Use a temporary object that is later assigned to mmServerSocket
             // because mmServerSocket is final.
             BluetoothServerSocket tmp = null;
@@ -369,6 +369,7 @@ public class MyBluetoothService {
             }
             mmSocket = tmp;
             mState = STATE_CONNECTING;
+            updateUserInterface();
         }
 
         public void run() {
