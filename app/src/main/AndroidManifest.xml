@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".GyroTest"
+            android:name=".GamePlace"
             android:screenOrientation="landscape"/>
         <activity
             android:name=".SetUpBluetooth"

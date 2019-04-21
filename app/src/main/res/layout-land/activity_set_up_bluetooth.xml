@@ -33,18 +33,6 @@
             android:onClick="showDevices"
             android:text="Show the visible devices" />
 
-        <EditText
-            android:id="@+id/edit_text_setup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Type" />
-
-        <Button
-            android:id="@+id/btn_setup_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="sendMessageButton"
-            android:text="Send" />
     </LinearLayout>
 
     <ListView

@@ -2,8 +2,10 @@ package com.example.a2playerstankgame;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Message;
@@ -26,33 +28,55 @@ public class MainActivity extends AppCompatActivity {
     Button btnConnection;
     Button btnExitGame;
     public static SetUpBluetooth bluetoothConnection;
-    GyroTest gyroTest;
     MyBluetoothService myBluetoothService;
 
+    Intent intent;
+
+     int first = 0;
+
     public static final int CONNECT_TO_DEVICE=111;
+
+    boolean ready = false;
+    boolean start = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        first = 0;
+
         btnNewGame = findViewById(R.id.btn_new_game);
         btnConnection = findViewById(R.id.btn_conncetion);
         btnExitGame = findViewById(R.id.btn_exit_game);
         myBluetoothService = new MyBluetoothService(this,mHandler);
-        gyroTest = new GyroTest(mHandler);
         bluetoothConnection = new SetUpBluetooth(myBluetoothService,MainActivity.this);
+
+        intent  =  new Intent(MainActivity.this,GamePlace.class);
+
         btnNewGame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                bluetoothConnection.sendMessage("Ready");
-                btnNewGame.setBackgroundColor(Color.RED);
-                btnNewGame.setText("Ready");
-                Intent intent  =  new Intent(MainActivity.this,GyroTest.class);
-                startActivity(intent);
+
+                if(first!=-1)first = 1;
+                Log.i("MainActivity","First? "+first);
+                intent.putExtra("First",first);
+                if(ready) {
+                    bluetoothConnection.sendMessage("Start");
+                    startActivity(intent);
+                }
+                else{
+                    synchronized (this) {
+                        bluetoothConnection.sendMessage("Ready");
+                    }
+                    btnNewGame.setBackgroundColor(Color.RED);
+                    btnNewGame.setText("Ready");
+                }
             }
         });
-        myBluetoothService.start();
+        if(BluetoothAdapter.getDefaultAdapter().isEnabled()) {
+            myBluetoothService.start();
+        }
 
     }
 
@@ -61,53 +85,91 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("HandlerLeak")
-    public Handler mHandler = new Handler() {
+    public final Handler mHandler = new Handler() {
         @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_STATE_CHANGE:
-                    switch (msg.arg1){
-                        case MyBluetoothService.STATE_CONNECTED:
-                            Toast.makeText(MainActivity.this,"Connected",Toast.LENGTH_LONG).show();
-                            //unregisterReceiver(receiver);
-                            //deviceDetails.clear();
-                            break;
-                        case MyBluetoothService.STATE_CONNECTING:
-                            Toast.makeText(MainActivity.this,"Connecting",Toast.LENGTH_LONG).show();
-                            break;
-                        case MyBluetoothService.STATE_LISTEN:
-                        case MyBluetoothService.STATE_NONE:
-                            Toast.makeText(MainActivity.this,"Not connected",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                    break;
-                case MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-
-                    break;
-                case MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    String readMessage = new String(readBuf,0,msg.arg1);
-                    Log.i("Main","message_read" + readMessage);
-                    if(readMessage.equals("Ready")){
-                        Toast.makeText(MainActivity.this,"The other player is "+readMessage,Toast.LENGTH_LONG).show();
-                    }
-                    String[] str = readMessage.split(" ");
-                    if(str[0].equals("State")){
-                        Log.i("MainActivity",str[0]+"-->"+str[1]);
-
-                        Float tmp = Float.parseFloat(str[1]);
-                        if(tmp>0.5){
-                            getWindow().getDecorView().setBackgroundColor(Color.GREEN);
+        public synchronized void  handleMessage(Message msg) {
+                switch (msg.what) {
+                    case MESSAGE_STATE_CHANGE:
+                        switch (msg.arg1) {
+                            case MyBluetoothService.STATE_CONNECTED:
+                                Log.i("MainActivity", "Connected");
+                                Toast.makeText(MainActivity.this, "Connected", Toast.LENGTH_LONG).show();
+                                break;
+                            case MyBluetoothService.STATE_CONNECTING:
+                                Log.i("MainActivity", "Connecting");
+                                Toast.makeText(MainActivity.this, "Connecting", Toast.LENGTH_LONG).show();
+                                break;
+                            case MyBluetoothService.STATE_LISTEN:
+                            case MyBluetoothService.STATE_NONE:
+                                Log.i("MainActivity", "Not connected");
+                                Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_LONG).show();
+                            /*Intent intentGyro = new Intent();
+                            intentGyro.putExtra("Connection","Lost");
+                            intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
+                            sendBroadcast(intentGyro);*/
+                                break;
                         }
-                        if(tmp<-0.5){
-                            getWindow().getDecorView().setBackgroundColor(Color.MAGENTA);
-                        }
-                    } break;
-                case MESSAGE_DEVICE_NAME:
-                    break;
+                        break;
+                    case MESSAGE_WRITE:
+                        break;
+                    case MESSAGE_READ:
+                            byte[] readBuf = (byte[]) msg.obj;
+                            String readMessage = new String(readBuf, 0, msg.arg1);
+                            //Log.i("MainActivity","message_read" + readMessage);
+                            if (readMessage.equals("Ready")) {
+                                Toast.makeText(MainActivity.this, "The other player is " + readMessage, Toast.LENGTH_LONG).show();
+                                btnNewGame.setText("Start");
+                                btnNewGame.setBackgroundColor(Color.GREEN);
+                                if (first != 1) first = -1;
+                                ready = true;
+                            }
+                            if (readMessage.equals("Start")) {
+                                Toast.makeText(MainActivity.this, "Start", Toast.LENGTH_LONG).show();
+                                startActivity(intent);
+
+                            }
+                            String[] str = readMessage.split(" ");
+                            if (str[0].equals("State")) {
+                                //Log.i("MainActivity",str[0]+"-->"+str[1]);
+                                Intent intentGyro = new Intent();
+                                switch (str[1]) {
+                                    case "up":
+                                        intentGyro.putExtra("State", "up");
+                                        break;
+                                    case "down":
+                                        intentGyro.putExtra("State", "down");
+                                        break;
+                                    case "left":
+                                        intentGyro.putExtra("State", "left");
+                                        break;
+                                    case "right":
+                                        intentGyro.putExtra("State", "right");
+                                        break;
+                                }
+                                intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
+                                sendBroadcast(intentGyro);
+
+                            }
+                            Log.i("MainActivity", "" + readMessage);
+                            if (str[0].equals("Pos")) {
+                                Intent intentGyro = new Intent();
+                                intentGyro.putExtra("Pos", "Position");
+                                float xpos = Float.parseFloat(str[1]);
+                                intentGyro.putExtra("Xpos", xpos);
+                                intentGyro.putExtra("Ypos", Float.parseFloat(str[2]));
+                                intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
+                                sendBroadcast(intentGyro);
+                                //Log.i("MainActivity","Position was sended ("+Float.parseFloat(str[1])+" "+Float.parseFloat(str[2]));
+                            }
+
+                        break;
+
+                    case MESSAGE_DEVICE_NAME:
+                        break;
+                }
+
             }
-        }
+
     };
 
     @Override
@@ -120,5 +182,21 @@ public class MainActivity extends AppCompatActivity {
                 if(device != null)myBluetoothService.connect(device, true);
             }
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i("MainActivity", "onPause");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i("MainActivity", "onDestroy");
+
+        myBluetoothService.stop();
+        finish();
+
     }
 }

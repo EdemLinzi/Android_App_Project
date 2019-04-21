@@ -110,14 +110,16 @@ public class MyBluetoothService {
 
     public synchronized void connected(BluetoothSocket socket,BluetoothDevice device){
         Log.i("MyBluetoothService","connected to "+device.getName());
-        if(clientThread != null){
-            clientThread.cancel();
-            clientThread = null;
-        }
+
 
         if(connectedThread!=null){
             connectedThread.cancel();
             connectedThread = null;
+        }
+
+        if(clientThread != null){
+            clientThread.cancel();
+            clientThread = null;
         }
 
         /*if(serverThreadSecure!=null){
@@ -133,11 +135,13 @@ public class MyBluetoothService {
         connectedThread = new ConnectedThread(socket);
         connectedThread.start();
 
+
         Message msg = mHandler.obtainMessage(SetUpBluetooth.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
         bundle.putString(SetUpBluetooth.DEVICE_NAME, device.getName());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
+
 
         updateUserInterface();
 
@@ -171,7 +175,7 @@ public class MyBluetoothService {
 
     }
 
-    public void write(byte[] out){
+    public synchronized void write(byte[] out){
         ConnectedThread r;
         synchronized (this){
             if(mState != STATE_CONNECTED) return;
@@ -182,21 +186,24 @@ public class MyBluetoothService {
 
     private void connectionFailed(){
         //Toast.makeText(context,"Connection Failed",Toast.LENGTH_LONG).show();
+        Log.i("MyBluetoothService","connectionFailed");
 
         mState = STATE_NONE;
         stop();
         updateUserInterface();
 
-        MyBluetoothService.this.start();
+        //MyBluetoothService.this.start();
     }
 
-    private void connectionLost(){
+    public void connectionLost(){
         //Toast.makeText(context,"Connection Lost",Toast.LENGTH_LONG).show();
+        Log.i("MyBluetoothService","connectionLost");
+
         mState = STATE_NONE;
         stop();
         updateUserInterface();
 
-        MyBluetoothService.this.start();
+        //MyBluetoothService.this.start();
     }
 
 
@@ -234,24 +241,27 @@ public class MyBluetoothService {
             int numBytes; // bytes returned from read()
 
             // Keep listening to the InputStream until an exception occurs.
-            while (mState == STATE_CONNECTED) {
-                try {
-                    // Read from the InputStream.
-                    numBytes = mmInStream.read(buffer);
-                    // Send the obtained bytes to the UI activity.
-                    mHandler.obtainMessage(
-                            SetUpBluetooth.MESSAGE_READ, numBytes, -1, buffer)
-                            .sendToTarget();
-                } catch (IOException e) {
-                    Log.d(TAG, "Input stream was disconnected", e);
-                    connectionLost();
-                    break;
+
+                while (mState == STATE_CONNECTED) {
+                    try {
+                        // Read from the InputStream.
+                        numBytes = mmInStream.read(buffer);
+                        // Send the obtained bytes to the UI activity.
+                        mHandler.obtainMessage(
+                                SetUpBluetooth.MESSAGE_READ, numBytes, -1, buffer)
+                                .sendToTarget();
+
+                    } catch (IOException e) {
+                        Log.d(TAG, "Input stream was disconnected", e);
+                        connectionLost();
+                        break;
+                    }
                 }
-            }
+
         }
 
         // Call this from the main activity to send data to the remote device.
-        public void write(byte[] bytes) {
+        public synchronized void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
 
@@ -268,6 +278,7 @@ public class MyBluetoothService {
         // Call this method from the main activity to shut down the connection.
         public void cancel() {
             try {
+                Log.i("MySetUpBluetooth", "ConnectedThread close");
                 mmSocket.close();
             } catch (IOException e) {
                 Log.e(TAG, "Could not close the connect socket", e);
@@ -302,8 +313,7 @@ public class MyBluetoothService {
         }
 
         public void run() {
-            Log.i("MyBluetoothService","Start listening");
-            setName("ServerThread");
+            Log.i("MyBluetoothService","Start ServerThread");
             BluetoothSocket socket = null;
             // Keep listening until exception occurs or a socket is returned.
             while (mState != STATE_CONNECTED) {
@@ -316,7 +326,6 @@ public class MyBluetoothService {
                 }
 
                 if (socket != null) {
-                    synchronized (MyBluetoothService.this){
                         switch (mState){
                             case STATE_LISTEN:
                             case STATE_CONNECTING:
@@ -331,7 +340,7 @@ public class MyBluetoothService {
                                 }
                                 break;
                         }
-                    }
+
                 }
             }
         }
@@ -339,8 +348,11 @@ public class MyBluetoothService {
         // Closes the connect socket and causes the thread to finish.
         public void cancel() {
             try {
+                Log.i("MySetUpBluetooth", "ServerThread close");
+
                 mmServerSocket.close();
             } catch (IOException e) {
+
                 Log.e("SetUpBluetooth Server", "Could not close the connect socket", e);
             }
         }
@@ -349,14 +361,12 @@ public class MyBluetoothService {
     public class ClientThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
-        private String socketType;
 
         public ClientThread(BluetoothDevice device,boolean secure) {
             // Use a temporary object that is later assigned to mmSocket
             // because mmSocket is final.
             BluetoothSocket tmp = null;
             mmDevice = device;
-            socketType = secure ? "Secure" : "Insecure";
             try {
                 if(secure) {
                     tmp = device.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
@@ -369,7 +379,7 @@ public class MyBluetoothService {
             }
             mmSocket = tmp;
             mState = STATE_CONNECTING;
-            updateUserInterface();
+            //updateUserInterface();
         }
 
         public void run() {
@@ -398,16 +408,17 @@ public class MyBluetoothService {
             synchronized (MyBluetoothService.this){
                 clientThread = null;
             }
-;
+
             connected(mmSocket,mmDevice);
         }
 
         // Closes the client socket and causes the thread to finish.
         public void cancel() {
             try {
+                Log.i("MySetUpBluetooth", "ClientThread close");
                 mmSocket.close();
             } catch (IOException e) {
-                Log.e("SetUpBluetooth Client", "Could not close the client socket", e);
+                Log.e("MySetUpBluetooth Client", "Could not close the client socket", e);
             }
         }
     }

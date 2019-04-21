@@ -35,8 +35,6 @@ public class SetUpBluetooth extends AppCompatActivity {
     Button btnBluetooth;
     Button btnDiscoverable;
     Button btnShowDevices;
-    Button btnSend;
-    EditText editText;
     Context context;
 
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -91,8 +89,6 @@ public class SetUpBluetooth extends AppCompatActivity {
         btnBluetooth = findViewById(R.id.btn_setup_enable_bluetooth);
         btnDiscoverable = findViewById(R.id.btn_setup_enable_discover);
         btnShowDevices = findViewById(R.id.btn_setup_show_devices);
-        btnSend = findViewById(R.id.btn_setup_send);
-        editText = findViewById(R.id.edit_text_setup);
 
         listViewDevices = findViewById(R.id.list_view_setup_devices);
 
@@ -146,20 +142,11 @@ public class SetUpBluetooth extends AppCompatActivity {
         }
     }
 
-    public void sendMessageButton(View v){
-
-        Log.i("SetUpBluetooth","Message sending");
-        //String message = editText.getText().toString();
-        String message = "";
-        sendMessage(message);
-
-        editText.setText("");
-    }
-
-    public void sendMessage(String message){
+    public synchronized void sendMessage(String message){
 
         if(myBluetoothService.getState() != MyBluetoothService.STATE_CONNECTED){
             Toast.makeText(context,"Not connected device",Toast.LENGTH_LONG).show();
+            myBluetoothService.connectionLost();
             return;
         }
 
@@ -213,6 +200,10 @@ public class SetUpBluetooth extends AppCompatActivity {
     public void disconnect(){
         bluetoothAdapter.cancelDiscovery();
         unregisterReceiver(receiver);
+    }
+
+    public int getState(){
+       return myBluetoothService.getState();
     }
 
     @Override
