@@ -175,7 +175,7 @@ public class MyBluetoothService {
 
     }
 
-    public synchronized void write(byte[] out){
+    public void write(byte[] out){
         ConnectedThread r;
         synchronized (this){
             if(mState != STATE_CONNECTED) return;
@@ -213,25 +213,25 @@ public class MyBluetoothService {
         private final OutputStream mmOutStream;
 
         public ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
+            this.mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
             // Get the input and output streams; using temp objects because
             // member streams are final.
             try {
-                tmpIn = socket.getInputStream();
+                tmpIn = mmSocket.getInputStream();
             } catch (IOException e) {
                 Log.e(TAG, "Error occurred when creating input stream", e);
             }
             try {
-                tmpOut = socket.getOutputStream();
+                tmpOut = mmSocket.getOutputStream();
             } catch (IOException e) {
                 Log.e(TAG, "Error occurred when creating output stream", e);
             }
 
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
+            this.mmInStream = tmpIn;
+            this.mmOutStream = tmpOut;
             mState = STATE_CONNECTED;
         }
 
@@ -247,8 +247,7 @@ public class MyBluetoothService {
                         // Read from the InputStream.
                         numBytes = mmInStream.read(buffer);
                         // Send the obtained bytes to the UI activity.
-                        mHandler.obtainMessage(
-                                SetUpBluetooth.MESSAGE_READ, numBytes, -1, buffer)
+                        mHandler.obtainMessage(SetUpBluetooth.MESSAGE_READ, numBytes, -1, buffer)
                                 .sendToTarget();
 
                     } catch (IOException e) {
@@ -261,7 +260,7 @@ public class MyBluetoothService {
         }
 
         // Call this from the main activity to send data to the remote device.
-        public synchronized void write(byte[] bytes) {
+        public void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
 
@@ -297,14 +296,9 @@ public class MyBluetoothService {
             // because mmServerSocket is final.
             BluetoothServerSocket tmp = null;
             try {
-                if(secure){
                     tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME,MY_UUID_SECURE);
                 }
-                else{
-                    tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME,MY_UUID_INSECURE);
-                }
-
-            } catch (IOException e) {
+            catch (IOException e) {
                 Log.e("SetUpBluetooth Server", "Socket's listen() method failed", e);
             }
             mmServerSocket = tmp;
@@ -316,8 +310,9 @@ public class MyBluetoothService {
             Log.i("MyBluetoothService","Start ServerThread");
             BluetoothSocket socket = null;
             // Keep listening until exception occurs or a socket is returned.
-            while (mState != STATE_CONNECTED) {
+            while (mState != STATE_CONNECTED ) {
                 try {
+                    if(mmServerSocket!=null)
                     socket = mmServerSocket.accept();
                     Log.i("MyBluetoothService","Server's accept");
                 } catch (IOException e) {
@@ -369,10 +364,10 @@ public class MyBluetoothService {
             mmDevice = device;
             try {
                 if(secure) {
-                    tmp = device.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
+                    tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
                 }
                 else{
-                    tmp = device.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
+                    tmp = mmDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
                 }
             } catch (IOException e) {
                 Log.e("SetUpBluetooth Client", "Socket's create() method failed", e);

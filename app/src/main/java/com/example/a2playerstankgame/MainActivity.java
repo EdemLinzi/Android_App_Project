@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
                 if(first!=-1)first = 1;
                 Log.i("MainActivity","First? "+first);
                 intent.putExtra("First",first);
+                //startActivity(intent);
+
                 if(ready) {
                     bluetoothConnection.sendMessage("Start");
                     startActivity(intent);
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("HandlerLeak")
     public final Handler mHandler = new Handler() {
         @Override
-        public synchronized void  handleMessage(Message msg) {
+        public  void  handleMessage(Message msg) {
                 switch (msg.what) {
                     case MESSAGE_STATE_CHANGE:
                         switch (msg.arg1) {
@@ -103,10 +105,6 @@ public class MainActivity extends AppCompatActivity {
                             case MyBluetoothService.STATE_NONE:
                                 Log.i("MainActivity", "Not connected");
                                 Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_LONG).show();
-                            /*Intent intentGyro = new Intent();
-                            intentGyro.putExtra("Connection","Lost");
-                            intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
-                            sendBroadcast(intentGyro);*/
                                 break;
                         }
                         break;
@@ -151,12 +149,14 @@ public class MainActivity extends AppCompatActivity {
 
                             }
                             Log.i("MainActivity", "" + readMessage);
-                            if (str[0].equals("Pos")) {
+                            if (str[0].equals("Pos") && str.length == 5) {
                                 Intent intentGyro = new Intent();
+                                //intentGyro.putExtra("Arrived",true);
                                 intentGyro.putExtra("Pos", "Position");
-                                float xpos = Float.parseFloat(str[1]);
-                                intentGyro.putExtra("Xpos", xpos);
+                                intentGyro.putExtra("Xpos", Float.parseFloat(str[1]));
                                 intentGyro.putExtra("Ypos", Float.parseFloat(str[2]));
+                                intentGyro.putExtra("Angle", Float.parseFloat(str[3]));
+                                intentGyro.putExtra("HullAngle", Float.parseFloat(str[4]));
                                 intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
                                 sendBroadcast(intentGyro);
                                 //Log.i("MainActivity","Position was sended ("+Float.parseFloat(str[1])+" "+Float.parseFloat(str[2]));
