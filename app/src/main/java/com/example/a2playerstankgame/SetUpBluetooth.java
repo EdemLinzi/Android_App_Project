@@ -108,9 +108,7 @@ public class SetUpBluetooth extends AppCompatActivity {
         if(bluetoothAdapter == null){
             Toast.makeText(this,"Sorry your device dosen't support Bluetooth",Toast.LENGTH_LONG).show();
         }
-        if(myBluetoothService.getState() == MyBluetoothService.STATE_NONE) {
-            myBluetoothService.start();
-        }
+
 
         //myBluetoothService = new MyBluetoothService(getApplicationContext(),mHandler);
 

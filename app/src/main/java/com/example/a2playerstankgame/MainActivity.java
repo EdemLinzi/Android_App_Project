@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
                 if(first!=-1)first = 1;
                 Log.i("MainActivity","First? "+first);
                 intent.putExtra("First",first);
-                //startActivity(intent);
+                startActivity(intent);
 
                 if(ready) {
                     bluetoothConnection.sendMessage("Start");
@@ -126,29 +126,16 @@ public class MainActivity extends AppCompatActivity {
                                 startActivity(intent);
 
                             }
-                            String[] str = readMessage.split(" ");
-                            if (str[0].equals("State")) {
-                                //Log.i("MainActivity",str[0]+"-->"+str[1]);
+                            if(readMessage.equals("Shoot")){
                                 Intent intentGyro = new Intent();
-                                switch (str[1]) {
-                                    case "up":
-                                        intentGyro.putExtra("State", "up");
-                                        break;
-                                    case "down":
-                                        intentGyro.putExtra("State", "down");
-                                        break;
-                                    case "left":
-                                        intentGyro.putExtra("State", "left");
-                                        break;
-                                    case "right":
-                                        intentGyro.putExtra("State", "right");
-                                        break;
-                                }
+                                intentGyro.putExtra("Shoot",true);
                                 intentGyro.setAction("com.example.a2playerstankgame.MainActivity");
                                 sendBroadcast(intentGyro);
 
                             }
-                            Log.i("MainActivity", "" + readMessage);
+                            String[] str = readMessage.split(" ");
+
+                            //Log.i("MainActivity", "" + readMessage);
                             if (str[0].equals("Pos") && str.length == 5) {
                                 Intent intentGyro = new Intent();
                                 //intentGyro.putExtra("Arrived",true);

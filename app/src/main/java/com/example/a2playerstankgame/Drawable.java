@@ -1,6 +1,13 @@
 package com.example.a2playerstankgame;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
+import android.graphics.PointF;
+import android.util.Log;
+
+import java.util.Arrays;
+import java.util.List;
+
 
 
 public class Drawable {
@@ -28,10 +35,36 @@ public class Drawable {
         this.tankBitmap = bitmap;
     }
 
+    public List<PointF> cornersVector(){
+        return Arrays.asList(
+                new PointF(xpos - tankBitmap.getWidth()/2,ypos - tankBitmap.getHeight()/2),
+                new PointF(xpos + tankBitmap.getWidth()/2,ypos - tankBitmap.getHeight()/2),
+                new PointF(xpos + tankBitmap.getWidth()/2,ypos + tankBitmap.getHeight()/2),
+                new PointF(xpos - tankBitmap.getWidth()/2,ypos + tankBitmap.getHeight()/2)
+        );
+    }
 
-    public void move(float x, float y){
-            xpos += x;
-            ypos += y;
+
+    public void move(float x, float y,double a){
+        //Log.i("Drawable",angle + " a= "+a);
+        float tmpx = (float)(x*cos(angle)+y*sin(angle));
+        float tmpy = (float)(y*cos(angle)-x*sin(angle));
+            xpos += tmpx;
+            ypos -= tmpy;
+    }
+
+
+    public void move2(float x, float y){
+        xpos += x;
+        ypos += y;
+    }
+
+    public static final double cos(double angle){
+        return Math.cos(Math.toRadians(angle));
+    }
+
+    public static final double sin(double angle){
+        return Math.sin(Math.toRadians(angle));
     }
 
     public float getXpos() {
@@ -65,7 +98,7 @@ public class Drawable {
         this.angle = angle;
     }
 
-    public  void incrAngle(float incr) {
+    public synchronized void incrAngle(float incr) {
         this.angle+=incr;
         if(angle>=360){
             angle=0;

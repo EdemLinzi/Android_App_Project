@@ -104,12 +104,18 @@ public class GamePlace extends AppCompatActivity {
                     }
                     break;
                 case MotionEvent.ACTION_DOWN:
-                    if(x > width/2+width/4) {
+                    if(x > width/2+width/4 && height/2<y) {
                         moveOwn = 1;
                     }
                     if(x < width/4){
                         moveOwn = -1;
                     }
+                    if(x > width/2+width/4 && height/2>y ){
+                        Log.i("GameView","Shoot");
+                        gameView.addBullet(new Bullet(tanks[own].getXpos(),tanks[own].getYpos(),tanks[own].getHullAngle(),true));
+                        //setUpBluetooth.sendMessage("Shoot");
+                    }
+
                     break;
                 case MotionEvent.ACTION_UP:
                     moveOwn = 0;
@@ -128,9 +134,8 @@ public class GamePlace extends AppCompatActivity {
         //setContentView(R.layout.activity_gyro_test);
         handler =  new Handler();
 
-        tanks[0] = new Drawable(0,1000, BitmapFactory.decodeResource(getResources(),R.drawable.tank1));
-        tanks[1] = new Drawable(0,0, BitmapFactory.decodeResource(getResources(),R.drawable.tank2));
-        tanks[2] = new Drawable(0,0, BitmapFactory.decodeResource(getResources(),R.drawable.tankhull));
+        tanks[0] = new Drawable(150,1000, BitmapFactory.decodeResource(getResources(),R.drawable.tank1));
+        tanks[1] = new Drawable(500,750, BitmapFactory.decodeResource(getResources(),R.drawable.tank2));
 
         Intent intent = getIntent();
         int tmp = intent.getIntExtra("First",0);
@@ -145,89 +150,55 @@ public class GamePlace extends AppCompatActivity {
         width = size.x;
         height = size.y;
 
-        gameView = new GameView(this,tanks[0],tanks[1],tanks[2],own);
+        gameView = new GameView(this,tanks[0],tanks[1],own);
         setContentView(gameView);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         setUpBluetooth = MainActivity.bluetoothConnection;
 
-        sensorEventListener = new SensorEventListener() {
+        new Thread(new Runnable() {
             @Override
-            public void onSensorChanged(SensorEvent event) {
-                    float[] rotationMatrix = new float[16];
-                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+            public void run() {
+                sensorEventListener = new SensorEventListener() {
+                    @Override
+                    public void onSensorChanged(SensorEvent event) {
+                        float[] rotationMatrix = new float[16];
+                        SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
 
-                    // Remap coordinate system
-                    float[] remappedRotationMatrix = new float[16];
-                    SensorManager.remapCoordinateSystem(rotationMatrix,
-                        SensorManager.AXIS_X,
-                        SensorManager.AXIS_Z,
-                        remappedRotationMatrix);
+                        // Remap coordinate system
+                        float[] remappedRotationMatrix = new float[16];
+                        SensorManager.remapCoordinateSystem(rotationMatrix,
+                                SensorManager.AXIS_X,
+                                SensorManager.AXIS_Z,
+                                remappedRotationMatrix);
 
-                    // Convert to orientations
-                    float[] orientations = new float[3];
-                    SensorManager.getOrientation(remappedRotationMatrix, orientations);
+                        // Convert to orientations
+                        float[] orientations = new float[3];
+                        SensorManager.getOrientation(remappedRotationMatrix, orientations);
 
-                    for(int i = 0; i < 3; i++) {
-                        orientations[i] = (float)(Math.toDegrees(orientations[i]));
+                        for(int i = 0; i < 3; i++) {
+                            orientations[i] = (float)(Math.toDegrees(orientations[i]));
+                        }
+                        //Log.i("GamePlace","Angle "+tanks[own].getAngle());
+                        if(orientations[2] > -110 && orientations[2] < -70) {
+                            tanks[own].incrAngle(0);
+                        }
+                        else if(orientations[2] > -70) {
+                            tanks[own].incrAngle(5);
+                        }
+                        else if(orientations[2] < -110) {
+                            tanks[own].incrAngle(-5);
+                        }
+
                     }
-                    Log.i("GamePlace","Angle "+tanks[own].getAngle());
-                    if(orientations[2] > -110 && orientations[2] < -70) {
-                        tanks[own].incrAngle(0);
+
+                    @Override
+                    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
                     }
-                    else if(orientations[2] > -70) {
-                        tanks[own].incrAngle(5);
-                    }
-                    else if(orientations[2] < -110) {
-                        tanks[own].incrAngle(-5);
-                    }
-
-                    /*if(event.values[1] > 1.0f) {
-                       // Log.i("GamePlace","message was sended (up)1");
-                       // setUpBluetooth.sendMessage("State up");
-                        //Log.i("GamePlace","message was sended (up)2");
-
-                        if(moveOwn == 0)moveOwn = 1;
-                        else moveOwn = 0;
-
-                    } else if(event.values[1] < -1.0f) {
-                        //setUpBluetooth.sendMessage("State down");
-                        //Log.i("GamePlace","message was sended (down)");
-
-                        if(moveOwn == 0)moveOwn = -1;
-                        else moveOwn = 0;
-
-
-                        //getWindow().getDecorView().setBackgroundColor(Color.YELLOW);
-                    } else if(event.values[0] > 1.0f){
-                        //setUpBluetooth.sendMessage("State right");
-                        //Log.i("GamePlace","message was sended (right)");
-
-                        if(moveOwn == 0) moveOwn = 2;
-                        else moveOwn = 0;
-
-
-                        // getWindow().getDecorView().setBackgroundColor(Color.YELLOW);
-
-                    } else if(event.values[0] < -1.0f){
-                        //setUpBluetooth.sendMessage("State left");
-                        //Log.i("GamePlace","message was sended (left)");
-
-                        if(moveOwn == 0) moveOwn = 3;
-                        else  moveOwn = 0;
-
-
-                        //getWindow().getDecorView().setBackgroundColor(Color.GREEN);
-                    }*/
-
-                }
-
-
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+                };
             }
-        };
+        }).start();
 
 
         Timer timer = new Timer();
@@ -240,44 +211,47 @@ public class GamePlace extends AppCompatActivity {
                         switch (moveOwn) {
                             case -1:
                                 //TODO hátrameneten még dolgozni kell
-                                if (gameView.canIMove(0, 5)) {
-                                    double alpha = Math.toRadians(tanks[own].getAngle());
-                                    float xpos = (float)(0*cos(alpha)+(-5)*sin(alpha));
-                                    float ypos = (float)(5*cos(alpha)-0*sin(alpha));
-                                    tanks[own].move(xpos, ypos);
+                                if (gameView.canIMove(0, -5)) {
+                                tanks[own].move(0, -5,tanks[own].getAngle());
                                 }else moveOwn = 0;
                                 break;
                             case 1:
-                                if (gameView.canIMove(0, -5)){
-                                    double alpha = Math.toRadians(tanks[own].getAngle());
-                                    float xpos = (float)(0*cos(alpha)+(5)*sin(alpha));
-                                    float ypos = (float)((5)*cos(alpha)-0*sin(alpha));
-                                    tanks[own].move(xpos, -ypos);
+
+                                if (gameView.canIMove(0, 5)){
+                                    tanks[own].move(0, 5,tanks[own].getAngle());
+                                    //tanks[own].move2(xpos, -ypos);
                                 }else moveOwn = 0;
                                 break;
-                            case 2:
-                                if(gameView.canIMove(5,0)) {
-                                    tanks[own].move(5, 0);
-                                }else moveOwn = 0;
-                                break;
-                            case 3:
-                                if(gameView.canIMove(-5,0)) {
-                                    tanks[own].move(-5, 0);
-                                }else moveOwn = 0;
-                                break;
+
                         }
                         gameView.invalidate();
-                        synchronized (this) {
+                        gameView.moveBullets();
+
+                        /*synchronized (this) {
                             if (setUpBluetooth.getState() != 0) {
                                 //Log.i("GamePlace","Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" "+ tanks[own].getAngle());
                                 setUpBluetooth.sendMessage("Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" " + tanks[own].getAngle()+" "+tanks[own].getHullAngle());
                                 //sended = false;
                             }
-                        }
+                        }*/
                     }
                 });
             }
-        },0,30);
+        },30,30);
+
+        /*new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(setUpBluetooth.getState() != 0){
+                    setUpBluetooth.sendMessage("Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" " + tanks[own].getAngle()+" "+tanks[own].getHullAngle()+" ");
+                    try {
+                        Thread.sleep(90);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();*/
 
         myReciver = new MyReciver();
         IntentFilter intentFilter = new IntentFilter();
@@ -311,31 +285,14 @@ public class GamePlace extends AppCompatActivity {
             //Log.i("GamePlace","Incoming intent");
             String str = intent.getStringExtra("State");
             //Log.i("GamePlace","Incoming intent "+str);
-            if(str!=null){
-                if(str.equals("up")){
-                    if(move == 0)move = 1;
-                    else move = 0;
-                }
-                if(str.equals("down")){
-                    if(move == 0)move = -1;
-                    else move = 0;
-                }
-                if(str.equals("right")){
-                    if(move == 0)move = 2;
-                    else move = 0;
-                }
-                if(str.equals("left")){
-                    if(move == 0)move = 3;
-                    else move = 0;
-                }
-            }
-
-            if(intent.getStringExtra("Pos").equals("Position")) {
+            if(intent.getBooleanExtra("Shoot",false)){
+                gameView.addBullet(new Bullet(tanks[other].getXpos(),tanks[other].getYpos(),tanks[other].getHullAngle(),false));
+            }else if(intent.getStringExtra("Pos").equals("Position")) {
                 float xpos = intent.getFloatExtra("Xpos", 0.0f);
                 float ypos = intent.getFloatExtra("Ypos", 0.0f);
                 float angle = intent.getFloatExtra("Angle", 0.0f);
                 float hullAngle = intent.getFloatExtra("HullAngle", 0.0f);
-                Log.i("GamePlace","Incoming position & angle" + xpos +" "+ypos+" "+angle);
+                //Log.i("GamePlace","Incoming position & angle" + xpos +" "+ypos+" "+angle);
 
                 tanks[other].setPos(xpos,ypos);
                 tanks[other].setAngle(angle);
