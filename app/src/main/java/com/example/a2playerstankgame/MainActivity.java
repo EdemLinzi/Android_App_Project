@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
                 if(first!=-1)first = 1;
                 Log.i("MainActivity","First? "+first);
                 intent.putExtra("First",first);
-                startActivity(intent);
+                //startActivity(intent);
 
                 if(ready) {
                     bluetoothConnection.sendMessage("Start");

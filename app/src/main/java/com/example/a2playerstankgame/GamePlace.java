@@ -24,6 +24,8 @@ import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -112,8 +114,9 @@ public class GamePlace extends AppCompatActivity {
                     }
                     if(x > width/2+width/4 && height/2>y ){
                         Log.i("GameView","Shoot");
+
                         gameView.addBullet(new Bullet(tanks[own].getXpos(),tanks[own].getYpos(),tanks[own].getHullAngle(),true));
-                        //setUpBluetooth.sendMessage("Shoot");
+                        setUpBluetooth.sendMessage("Shoot");
                     }
 
                     break;
@@ -131,11 +134,14 @@ public class GamePlace extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i("GamePlace","Is create");
+
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         //setContentView(R.layout.activity_gyro_test);
         handler =  new Handler();
 
         tanks[0] = new Drawable(150,1000, BitmapFactory.decodeResource(getResources(),R.drawable.tank1));
-        tanks[1] = new Drawable(500,750, BitmapFactory.decodeResource(getResources(),R.drawable.tank2));
+        tanks[1] = new Drawable(1500,500, BitmapFactory.decodeResource(getResources(),R.drawable.tank2));
 
         Intent intent = getIntent();
         int tmp = intent.getIntExtra("First",0);
@@ -226,6 +232,7 @@ public class GamePlace extends AppCompatActivity {
                         }
                         gameView.invalidate();
                         gameView.moveBullets();
+                        gameView.hit();
 
                         /*synchronized (this) {
                             if (setUpBluetooth.getState() != 0) {
@@ -239,7 +246,7 @@ public class GamePlace extends AppCompatActivity {
             }
         },30,30);
 
-        /*new Thread(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 while(setUpBluetooth.getState() != 0){
@@ -251,7 +258,7 @@ public class GamePlace extends AppCompatActivity {
                     }
                 }
             }
-        }).start();*/
+        }).start();
 
         myReciver = new MyReciver();
         IntentFilter intentFilter = new IntentFilter();

@@ -47,8 +47,8 @@ public class Bullet {
     }
 
     public void moveBullet(){
-        this.xpos -= 0*cos(angle)-5*sin(angle);
-        this.ypos -= 5*cos(angle)+0*sin(angle);
+        this.xpos -= 0*cos(angle)-10*sin(angle);
+        this.ypos -= 10*cos(angle)+0*sin(angle);
     }
 
     public synchronized void setAngle(float angle){

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.Log;
@@ -25,7 +26,9 @@ public class GameView extends View {
     ArrayList<PointF> imagePoins;
     ArrayList<Bullet> bullets;
 
+    Paint scorePaint;
 
+    int[] score = {0,0};
 
     public GameView(Context context,Drawable tank1,Drawable tank2,int own) {
         super(context);
@@ -43,7 +46,7 @@ public class GameView extends View {
         bulletImage = BitmapFactory.decodeResource(getResources(),R.drawable.bullet);
         this.map = BitmapFactory.decodeResource(getResources(),R.drawable.map);
         bullets = new ArrayList<>();
-
+        scorePaint = new Paint();
 
     }
 
@@ -97,8 +100,8 @@ public class GameView extends View {
     private PointF rotatePoint(PointF point,float deg){
         PointF tmp = new PointF();
 
-                tmp.x =(float)(point.x*cos(deg)-point.y*sin(deg));
-                tmp.y =(float)(point.y*cos(deg)+point.x*sin(deg));
+        tmp.x =(float)(point.x*cos(deg)-point.y*sin(deg));
+        tmp.y =(float)(point.y*cos(deg)+point.x*sin(deg));
 
         return tmp;
     }
@@ -121,6 +124,38 @@ public class GameView extends View {
 
 
         return arrayPoints;
+    }
+
+    public void hit(){
+        float[] imageSize = {tank2.getTankBitmap().getWidth()/10,tank2.getTankBitmap().getHeight()/10};
+        //Log.i("GameView","Tank2pos x "+tank2.getXpos() +" y "+tank2.getYpos());
+        for(int i = 0;i<bullets.size();i++){
+            float dx = 0;
+            float dy = 0;
+            if(bullets.get(i).getOwn()) {
+                dx = bullets.get(i).getXpos() - tank2.getXpos();
+                dy = bullets.get(i).getYpos() - tank2.getYpos();
+            }
+            else{
+                dx = bullets.get(i).getXpos() - tank1.getXpos();
+                dy = bullets.get(i).getYpos() - tank1.getYpos();
+            }
+            PointF point = rotatePoint(new PointF(dx,dy),-tank2.getAngle());
+            //point.x+=bullets.get(i).getXpos();
+            //point.y+=bullets.get(i).getYpos();
+            //Log.i("GameView","BulletPos x "+point.x +" y "+point.y);
+            //if(point.x>= tank2.getXpos()-imageSize[0] && point.x<= tank2.getXpos()+imageSize[0] && point.y >= tank2.getYpos()-imageSize[1] && point.y<= tank2.getYpos()+imageSize[1] && bullets.get(i).getOwn()){
+            if(point.x>= -imageSize[0] && point.x<= +imageSize[0] && point.y >= -imageSize[1] && point.y<= +imageSize[1]){
+                Log.i("GameView","Találat "+bullets.get(i).getOwn());
+                if(bullets.get(i).getOwn()){
+                    score[0]++;
+                }
+                else{
+                    score[1]++;
+                }
+                bullets.remove(i);
+            }
+        }
     }
 
     public boolean canIMove(float px,float py){
@@ -149,19 +184,7 @@ public class GameView extends View {
 
 
         float m = (y1 - y2)/(x2 - x1);
-        /*Log.i("GameView","M= "+m);
-        Log.i("GameView","x1= "+x1+" x2="+x2);
-        Log.i("GameView","xpos= "+tank1.getXpos()+" ypos="+tank1.getYpos());
-        Log.i("GameView","y1= "+(y1)+" y2="+(y2));
-        Log.i("GameView","y1+y= "+(y1+tank1.getYpos())+" y2+y="+(y2+tank1.getYpos()));
-        Log.i("GameView","x2-x1 "+(x2-x1));
-        Log.i("GameView","y2-y1 "+(y1-y2));
-        Log.i("GameView","mapWidth "+map.getWidth()+" mapHeight "+map.getHeight());*/
 
-
-       /* for(int i = 0;i<imagePoins.size();i++){
-            Log.i("Gameview","ImagePoint "+i+" pos "+imagePoins.get(i).x+" "+imagePoins.get(i).y);
-        }*/
 
         float ford = 0;
         if(tank1.getAngle()<90 || tank1.getAngle()>270){
@@ -169,11 +192,8 @@ public class GameView extends View {
         }else if(tank1.getAngle()>90 && tank1.getAngle()<270){
             ford = -1;
         }
-        //Log.i("GameView","ford "+ford);
-        //Log.i("GameView","elore "+elore);
 
         for(int i=0;i<Math.abs(x2-x1);i++){
-            //Log.i("GameView", "X sarok=" + (int)(x1+ford*i+tank1.getXpos()) + " Y magassag=" + (int)(-(ford*i)*m+tank1.getYpos()+y1));
             if (map.getPixel((int)(x1+ford*i+tank1.getXpos()),(int)(-(ford*i)*m+tank1.getYpos()+y1)) == Color.BLACK) {
                     return false;
                 }
@@ -181,13 +201,10 @@ public class GameView extends View {
         if(tank1.getAngle() == 90 || tank1.getAngle() == 270){
             for(int i = 0;i<Math.abs(y1-y2);i++){
                 if (map.getPixel((int)(x1+tank1.getXpos()),(int)(-(ford*i)+tank1.getYpos()+y1)) == Color.BLACK) {
-                    //Log.i("GameView", "X sarok=" + (x1+i+tank1.getXpos()) + " Y magassag=" + (-(i)*m+tank1.getYpos()+y1));
                     return false;
                 }
             }
         }
-
-
         return true;
     }
 
@@ -206,17 +223,8 @@ public class GameView extends View {
         float tankPosX = canvasWidth/2;
         float tankPosY = canvasHeight/2;
 
-       // Log.i("GameView","Xpos "+tank1.getXpos()+" Ypos "+tank1.getYpos());
-
-        /*float[] tankImageSize = {tank1.getTankBitmap().getWidth()/10,tank1.getTankBitmap().getHeight()/10};
-        if(tank1.getXpos() - tankImageSize[0] < 0 ){tank1.setPos(tankImageSize[0],tank1.getYpos());}
-        if(tank1.getXpos() + tankImageSize[0] > map.getWidth()){tank1.setPos(map.getWidth()-tankImageSize[0],tank1.getYpos());}
-        if(tank1.getYpos() - tankImageSize[1] < 0){tank1.setPos(tank1.getXpos(),tankImageSize[1]);}
-        if(tank1.getYpos() + tankImageSize[1] > map.getHeight()){tank1.setPos(tank1.getXpos(),map.getHeight()-tankImageSize[1]);}
-*/
-
-
-        imagePoins = calcPoints(tank1.getXpos(),tank1.getYpos(),tank1.getAngle());
+        ///TODO H 11:45 kiszedve
+        //imagePoins = calcPoints(tank1.getXpos(),tank1.getYpos(),tank1.getAngle());
         for(int i = 0;i<imagePoins.size();i++){
             //Log.i("Gameview","ImagePoint "+i+" pos "+imagePoins.get(i).x+" "+imagePoins.get(i).y);
             if((imagePoins.get(i).x+tank1.getXpos()) < 0){ tank1.setPos(Math.abs(imagePoins.get(i).x),tank1.getYpos()); }
@@ -230,11 +238,9 @@ public class GameView extends View {
 
         canvas.drawBitmap(map,tankPosX-tank1.getXpos(),tankPosY-tank1.getYpos(),null);
 
-
-
-        //Log.i("GameView","Xpos "+tank1.getXpos()+" Xpos "+tank1.getYpos());
-
-
+        canvas.scale(5,5);
+        canvas.drawText("Score "+score[0]+" : "+score[1],canvasWidth/10-40,10,scorePaint);
+        canvas.scale(0.2f,0.2f);
 
         canvas.scale(0.2f,0.2f);
 
@@ -268,8 +274,11 @@ public class GameView extends View {
         canvas.drawBitmap(tankhull.getTankBitmap(),tank2HullPosX,tank2HullPosY,null);
         canvas.rotate(-tank2.getHullAngle(),tank2PosX+tank2.getTankBitmap().getWidth()/2,tank2PosY+tank2.getTankBitmap().getHeight()/2);
 
+        canvas.drawText("Score "+score[0]+" : "+score[1],canvasWidth*2.5f,60,scorePaint);
 
         canvas.scale(-1.0f,-1.0f);
+
+
 
     }
 }
