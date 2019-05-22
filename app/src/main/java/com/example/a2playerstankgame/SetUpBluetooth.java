@@ -35,6 +35,7 @@ public class SetUpBluetooth extends AppCompatActivity {
     Button btnBluetooth;
     Button btnDiscoverable;
     Button btnShowDevices;
+    Button btnListening;
     Context context;
 
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -42,6 +43,7 @@ public class SetUpBluetooth extends AppCompatActivity {
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
+    public static final int LISTENING = 102;
 
     ListView listViewDevices;
     ArrayAdapter adapter ;
@@ -89,6 +91,7 @@ public class SetUpBluetooth extends AppCompatActivity {
         btnBluetooth = findViewById(R.id.btn_setup_enable_bluetooth);
         btnDiscoverable = findViewById(R.id.btn_setup_enable_discover);
         btnShowDevices = findViewById(R.id.btn_setup_show_devices);
+        btnListening = findViewById(R.id.btn_setup_listening);
 
         listViewDevices = findViewById(R.id.list_view_setup_devices);
 
@@ -128,20 +131,39 @@ public class SetUpBluetooth extends AppCompatActivity {
     }
 
     public void enableDiscoverability(View v){
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,DISCOVERABLE_DURATION);
-        startActivity(discoverableIntent);
+
+        if(!bluetoothAdapter.isEnabled()){
+            Toast.makeText(this,"Please turn On your Bluetooth",Toast.LENGTH_LONG).show();
+        }else {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, DISCOVERABLE_DURATION);
+            startActivity(discoverableIntent);
+        }
+    }
+
+    public void listening(View v){
+        if(!bluetoothAdapter.isEnabled()){
+            Toast.makeText(this,"Please turn On your Bluetooth",Toast.LENGTH_LONG).show();
+        }else {
+            setResult(LISTENING);
+            finish();
+        }
     }
 
 
     public void showDevices(View v){
         Log.i("SetUpBluetooth","showDevices");
-        deviceDetails.clear();
-        devices.clear();
-        if(!bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.startDiscovery();
+        if(!bluetoothAdapter.isEnabled()){
+            Toast.makeText(this,"Please turn On your Bluetooth",Toast.LENGTH_LONG).show();
+        }else {
+            deviceDetails.clear();
+            devices.clear();
+            if (!bluetoothAdapter.isDiscovering()) {
+                bluetoothAdapter.startDiscovery();
+            }
         }
     }
+
 
     public synchronized void sendMessage(String message){
 

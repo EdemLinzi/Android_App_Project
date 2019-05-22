@@ -48,6 +48,10 @@ public class GameView extends View {
         bullets = new ArrayList<>();
         scorePaint = new Paint();
 
+        float canvasHeight = getHeight();
+        float canvasWidth = getWidth();
+        Log.i("GameView","Width "+canvasWidth+" Height "+canvasHeight);
+
     }
 
     public void addBullet(Bullet bullet){
@@ -141,10 +145,7 @@ public class GameView extends View {
                 dy = bullets.get(i).getYpos() - tank1.getYpos();
             }
             PointF point = rotatePoint(new PointF(dx,dy),-tank2.getAngle());
-            //point.x+=bullets.get(i).getXpos();
-            //point.y+=bullets.get(i).getYpos();
-            //Log.i("GameView","BulletPos x "+point.x +" y "+point.y);
-            //if(point.x>= tank2.getXpos()-imageSize[0] && point.x<= tank2.getXpos()+imageSize[0] && point.y >= tank2.getYpos()-imageSize[1] && point.y<= tank2.getYpos()+imageSize[1] && bullets.get(i).getOwn()){
+
             if(point.x>= -imageSize[0] && point.x<= +imageSize[0] && point.y >= -imageSize[1] && point.y<= +imageSize[1]){
                 Log.i("GameView","Találat "+bullets.get(i).getOwn());
                 if(bullets.get(i).getOwn()){
@@ -158,14 +159,11 @@ public class GameView extends View {
         }
     }
 
-    public boolean canIMove(float px,float py){
+    public boolean canIMove(int elore){
         float x1,y1,x2,y2 ;
         x1=x2=y1=y2=0;
         float[] tankImageSize = {tank1.getTankBitmap().getWidth()/10,tank1.getTankBitmap().getHeight()/10};
 
-        int elore = 0;
-        if(py<0){ elore = 1; }
-        if(py>0){ elore = -1; }
 
         x1 += (-tankImageSize[0])*cos(tank1.getAngle())-(+elore*tankImageSize[1])*sin(tank1.getAngle());
         y1 += (+elore*tankImageSize[1])*cos(tank1.getAngle())+(-tankImageSize[0])*sin(tank1.getAngle());
@@ -208,6 +206,10 @@ public class GameView extends View {
         return true;
     }
 
+    public int[] getScore(){
+        return score;
+    }
+
     public static final double cos(double angle){
         return Math.cos(Math.toRadians(angle));
     }
@@ -222,6 +224,7 @@ public class GameView extends View {
         float canvasWidth = getWidth();
         float tankPosX = canvasWidth/2;
         float tankPosY = canvasHeight/2;
+        //Log.i("GameView","Width "+canvasWidth+" Height "+canvasHeight);
 
         ///TODO H 11:45 kiszedve
         //imagePoins = calcPoints(tank1.getXpos(),tank1.getYpos(),tank1.getAngle());
@@ -277,8 +280,6 @@ public class GameView extends View {
         canvas.drawText("Score "+score[0]+" : "+score[1],canvasWidth*2.5f,60,scorePaint);
 
         canvas.scale(-1.0f,-1.0f);
-
-
 
     }
 }

@@ -17,7 +17,8 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".GamePlace"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape"
+            />
         <activity
             android:name=".SetUpBluetooth"
             android:screenOrientation="landscape" />

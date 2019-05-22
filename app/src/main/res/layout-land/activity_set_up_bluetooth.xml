@@ -33,6 +33,13 @@
             android:onClick="showDevices"
             android:text="Show the visible devices" />
 
+        <Button
+            android:id="@+id/btn_setup_listening"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Listening"
+            android:onClick="listening"/>
+
     </LinearLayout>
 
     <ListView

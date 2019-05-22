@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import static com.example.a2playerstankgame.SetUpBluetooth.MESSAGE_DEVICE_NAME;
@@ -27,17 +28,18 @@ public class MainActivity extends AppCompatActivity {
     Button btnNewGame;
     Button btnConnection;
     Button btnExitGame;
+    TextView textView;
     public static SetUpBluetooth bluetoothConnection;
-    MyBluetoothService myBluetoothService;
+    public static MyBluetoothService myBluetoothService;
 
     Intent intent;
 
      int first = 0;
 
     public static final int CONNECT_TO_DEVICE=111;
+    public static final int GAME_OVER=100;
 
     boolean ready = false;
-    boolean start = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +51,8 @@ public class MainActivity extends AppCompatActivity {
         btnNewGame = findViewById(R.id.btn_new_game);
         btnConnection = findViewById(R.id.btn_conncetion);
         btnExitGame = findViewById(R.id.btn_exit_game);
-        myBluetoothService = new MyBluetoothService(this,mHandler);
+        textView = findViewById(R.id.textView);
+        myBluetoothService = new MyBluetoothService(mHandler);
         bluetoothConnection = new SetUpBluetooth(myBluetoothService,MainActivity.this);
 
         intent  =  new Intent(MainActivity.this,GamePlace.class);
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
         btnNewGame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                intent  =  new Intent(MainActivity.this,GamePlace.class);
 
                 if(first!=-1)first = 1;
                 Log.i("MainActivity","First? "+first);
@@ -65,25 +69,24 @@ public class MainActivity extends AppCompatActivity {
 
                 if(ready) {
                     bluetoothConnection.sendMessage("Start");
-                    startActivity(intent);
+                    startActivityForResult(intent,1);
                 }
                 else{
-                    synchronized (this) {
-                        bluetoothConnection.sendMessage("Ready");
-                    }
+                    bluetoothConnection.sendMessage("Ready");
                     btnNewGame.setBackgroundColor(Color.RED);
                     btnNewGame.setText("Ready");
                 }
             }
         });
-        if(BluetoothAdapter.getDefaultAdapter().isEnabled()) {
-            myBluetoothService.start();
-        }
 
     }
 
     public void connection(View v){
         startActivityForResult(new Intent(this,SetUpBluetooth.class),0);
+    }
+
+    public void exitGame(View v){
+        finish();
     }
 
     @SuppressLint("HandlerLeak")
@@ -102,6 +105,8 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.makeText(MainActivity.this, "Connecting", Toast.LENGTH_LONG).show();
                                 break;
                             case MyBluetoothService.STATE_LISTEN:
+                                Toast.makeText(MainActivity.this, "Listening", Toast.LENGTH_LONG).show();
+                                break;
                             case MyBluetoothService.STATE_NONE:
                                 Log.i("MainActivity", "Not connected");
                                 Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_LONG).show();
@@ -123,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             if (readMessage.equals("Start")) {
                                 Toast.makeText(MainActivity.this, "Start", Toast.LENGTH_LONG).show();
-                                startActivity(intent);
+                                startActivityForResult(intent,1);
 
                             }
                             if(readMessage.equals("Shoot")){
@@ -133,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
                                 sendBroadcast(intentGyro);
 
                             }
+
                             String[] str = readMessage.split(" ");
 
                             //Log.i("MainActivity", "" + readMessage);
@@ -168,8 +174,35 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice device = data.getParcelableExtra("connectTo");
                 if(device != null)myBluetoothService.connect(device, true);
             }
+            if( resultCode == SetUpBluetooth.LISTENING){
+                myBluetoothService.start();
+            }
+        }
+        if(requestCode == 1) {
+            if (resultCode == GAME_OVER) {
+                if (data.getIntExtra("Winner",-1) == 1) {
+                    textView.setText("You win");
+                    Log.i("MainActivity", "You win");
+
+                }
+
+                if (data.getIntExtra("Winner",-1) == 2) {
+                    textView.setText("The other player win");
+                    Log.i("MainActivity", "The other player win");
+
+                }
+
+                btnNewGame.setText("New Game");
+                btnNewGame.setBackgroundColor(Color.LTGRAY);
+                ready = false;
+                first = 0;
+                Log.i("MainActivity", "GameOver");
+
+            }
         }
     }
+
+
 
     @Override
     protected void onPause() {
@@ -183,7 +216,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i("MainActivity", "onDestroy");
 
         myBluetoothService.stop();
-        finish();
 
     }
 }

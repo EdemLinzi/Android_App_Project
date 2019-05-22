@@ -39,12 +39,11 @@ public class MyBluetoothService {
 
     private Context context;
 
-    public MyBluetoothService(Context myContext,Handler handler){
+    public MyBluetoothService(Handler handler){
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         newState = mState;
         mHandler = handler;
-        this.context = myContext;
     }
 
     private synchronized void updateUserInterface(){
@@ -330,12 +329,13 @@ public class MyBluetoothService {
                             case STATE_CONNECTED:
                                 try {
                                     socket.close();
+                                    Log.i("MyBluetoothService", "Socket closed");
+
                                 } catch (IOException e) {
                                     Log.e(TAG, "Could not close unwanted socket", e);
                                 }
                                 break;
                         }
-
                 }
             }
         }

@@ -60,12 +60,10 @@ public class GamePlace extends AppCompatActivity {
     MyReciver myReciver;
 
     GameView gameView;
-    Drawable[] tanks = new Drawable[3];
+    Drawable[] tanks ;
 
     Handler handler;
 
-
-    Integer move = 0;
     Integer moveOwn = 0;
     int own;
     int other;
@@ -79,66 +77,28 @@ public class GamePlace extends AppCompatActivity {
     int width = 0;
     int height = 0;
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
+    long actTime = 0;
+    long lastShootTime = 0;
+    long ellapsedTime = 0;
 
-            float x = event.getX();
-            float y = event.getY();
+    int count = 0;
 
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_MOVE:
 
-                    float dx = x - previousX;
-                    float dy = y - previousY;
-
-                    // reverse direction of rotation above the mid-line
-                    if(x>width/4 && x< width/2+width/4 ) {
-                        if (y > height / 2) {
-                            dx = dx * -1;
-                        }
-
-                        // reverse direction of rotation to left of the mid-line
-                        if (x < width / 2) {
-                            dy = dy * -1;
-                        }
-
-                        tanks[own].setHullAngle(tanks[own].getHullAngle() + ((dx + dy) * TOUCH_SCALE_FACTOR));
-                    }
-                    break;
-                case MotionEvent.ACTION_DOWN:
-                    if(x > width/2+width/4 && height/2<y) {
-                        moveOwn = 1;
-                    }
-                    if(x < width/4){
-                        moveOwn = -1;
-                    }
-                    if(x > width/2+width/4 && height/2>y ){
-                        Log.i("GameView","Shoot");
-
-                        gameView.addBullet(new Bullet(tanks[own].getXpos(),tanks[own].getYpos(),tanks[own].getHullAngle(),true));
-                        setUpBluetooth.sendMessage("Shoot");
-                    }
-
-                    break;
-                case MotionEvent.ACTION_UP:
-                    moveOwn = 0;
-                    break;
-            }
-
-            previousX = x;
-            previousY = y;
-            return true;
-    }
+    Timer timer;
+    Thread sendMessagePosThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i("GamePlace","Is create");
+        Log.i("GamePlace","onCreate");
+
 
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         //setContentView(R.layout.activity_gyro_test);
         handler =  new Handler();
+        tanks = new Drawable[2];
 
         tanks[0] = new Drawable(150,1000, BitmapFactory.decodeResource(getResources(),R.drawable.tank1));
         tanks[1] = new Drawable(1500,500, BitmapFactory.decodeResource(getResources(),R.drawable.tank2));
@@ -162,71 +122,68 @@ public class GamePlace extends AppCompatActivity {
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         setUpBluetooth = MainActivity.bluetoothConnection;
 
-        new Thread(new Runnable() {
+
+        sensorEventListener = new SensorEventListener() {
             @Override
-            public void run() {
-                sensorEventListener = new SensorEventListener() {
-                    @Override
-                    public void onSensorChanged(SensorEvent event) {
-                        float[] rotationMatrix = new float[16];
-                        SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+            public void onSensorChanged(SensorEvent event) {
+                float[] rotationMatrix = new float[16];
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
 
-                        // Remap coordinate system
-                        float[] remappedRotationMatrix = new float[16];
-                        SensorManager.remapCoordinateSystem(rotationMatrix,
-                                SensorManager.AXIS_X,
-                                SensorManager.AXIS_Z,
-                                remappedRotationMatrix);
+                // Remap coordinate system
+                float[] remappedRotationMatrix = new float[16];
+                SensorManager.remapCoordinateSystem(rotationMatrix,
+                        SensorManager.AXIS_X,
+                        SensorManager.AXIS_Z,
+                        remappedRotationMatrix);
 
-                        // Convert to orientations
-                        float[] orientations = new float[3];
-                        SensorManager.getOrientation(remappedRotationMatrix, orientations);
+                // Convert to orientations
+                float[] orientations = new float[3];
+                SensorManager.getOrientation(remappedRotationMatrix, orientations);
 
-                        for(int i = 0; i < 3; i++) {
-                            orientations[i] = (float)(Math.toDegrees(orientations[i]));
-                        }
-                        //Log.i("GamePlace","Angle "+tanks[own].getAngle());
-                        if(orientations[2] > -110 && orientations[2] < -70) {
-                            tanks[own].incrAngle(0);
-                        }
-                        else if(orientations[2] > -70) {
-                            tanks[own].incrAngle(5);
-                        }
-                        else if(orientations[2] < -110) {
-                            tanks[own].incrAngle(-5);
-                        }
-
-                    }
-
-                    @Override
-                    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-                    }
-                };
+                for(int i = 0; i < 3; i++) {
+                    orientations[i] = (float)(Math.toDegrees(orientations[i]));
+                }
+                //Log.i("GamePlace","Angle "+tanks[own].getAngle());
+                if(orientations[2] > -110 && orientations[2] < -70) {
+                    tanks[own].incrAngle(0);
+                }
+                else if(orientations[2] > -70) {
+                    tanks[own].incrAngle(5);
+                }
+                else if(orientations[2] < -110) {
+                    tanks[own].incrAngle(-5);
+                }
             }
-        }).start();
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+            }
+        };
 
 
-        Timer timer = new Timer();
+
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
+                        endGame();
+                        actTime = System.currentTimeMillis();
+                        ellapsedTime = actTime - lastShootTime;
                         switch (moveOwn) {
                             case -1:
-                                //TODO hátrameneten még dolgozni kell
-                                if (gameView.canIMove(0, -5)) {
+                                if (gameView.canIMove(1)) {
                                 tanks[own].move(0, -5,tanks[own].getAngle());
-                                }else moveOwn = 0;
+                                };
                                 break;
                             case 1:
 
-                                if (gameView.canIMove(0, 5)){
+                                if (gameView.canIMove(-1)){
                                     tanks[own].move(0, 5,tanks[own].getAngle());
-                                    //tanks[own].move2(xpos, -ypos);
-                                }else moveOwn = 0;
+                                };
                                 break;
 
                         }
@@ -234,42 +191,95 @@ public class GamePlace extends AppCompatActivity {
                         gameView.moveBullets();
                         gameView.hit();
 
-                        /*synchronized (this) {
-                            if (setUpBluetooth.getState() != 0) {
-                                //Log.i("GamePlace","Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" "+ tanks[own].getAngle());
-                                setUpBluetooth.sendMessage("Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" " + tanks[own].getAngle()+" "+tanks[own].getHullAngle());
-                                //sended = false;
-                            }
-                        }*/
+                        if(setUpBluetooth.getState()!=MyBluetoothService.STATE_NONE && count > 2){
+                            setUpBluetooth.sendMessage("Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos() + " " + tanks[own].getAngle() + " " + tanks[own].getHullAngle() + " ");
+                        }
+                        count ++ ;
                     }
                 });
             }
         },30,30);
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(setUpBluetooth.getState() != 0){
-                    setUpBluetooth.sendMessage("Pos " + tanks[own].getXpos() + " " + tanks[own].getYpos()+" " + tanks[own].getAngle()+" "+tanks[own].getHullAngle()+" ");
-                    try {
-                        Thread.sleep(90);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }).start();
-
         myReciver = new MyReciver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("com.example.a2playerstankgame.MainActivity");
         registerReceiver(myReciver,intentFilter);
-        sensorManager.registerListener(sensorEventListener,sensor,SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(sensorEventListener,sensor,100000);
 
 
     }
 
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        float x = event.getX();
+        float y = event.getY();
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_MOVE:
+
+                float dx = x - previousX;
+                float dy = y - previousY;
+
+                if(x>width/4 && x< width/2+width/4 ) {
+                    if (y > height / 2) {
+                        dx = dx * -1;
+                    }
+
+                    if (x < width / 2) {
+                        dy = dy * -1;
+                    }
+
+                    tanks[own].setHullAngle(tanks[own].getHullAngle() + ((dx + dy) * TOUCH_SCALE_FACTOR));
+                }
+                break;
+            case MotionEvent.ACTION_DOWN:
+                if(x > width/2+width/4 && height/2<y) {
+                    moveOwn = 1;
+                }
+                if(x < width/4){
+                    moveOwn = -1;
+                }
+                if(x > width/2+width/4 && height/2>y ){
+                    Log.i("GameView","Shoot");
+                    if(ellapsedTime>=1000.0f) {
+                        setUpBluetooth.sendMessage("Shoot");
+                        lastShootTime = actTime;
+                        gameView.addBullet(new Bullet(tanks[own].getXpos(), tanks[own].getYpos(), tanks[own].getHullAngle(), true));
+                        count = 0;
+
+                    }
+                }
+
+                break;
+            case MotionEvent.ACTION_UP:
+                moveOwn = 0;
+                break;
+        }
+
+        previousX = x;
+        previousY = y;
+        return true;
+    }
+
+
+
+
+    private void endGame(){
+        int[] score = gameView.getScore();
+        Intent winintent = getIntent();
+        if(score[0]>=5){
+            winintent.putExtra("Winner",1);
+            setResult(MainActivity.GAME_OVER,winintent);
+            finish();
+        }
+        if(score[1]>=5){
+            winintent.putExtra("Winner",2);
+            setResult(MainActivity.GAME_OVER,winintent);
+            finish();
+        }
+    }
 
     @Override
     protected void onPause() {
@@ -281,17 +291,17 @@ public class GamePlace extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        timer.cancel();
+        sendMessagePosThread = null;
         Log.i("GamePlace","onDestroy");
         unregisterReceiver(myReciver);
-        finish();
+
     }
+
 
     class MyReciver extends BroadcastReceiver{
         @Override
         public synchronized void onReceive(Context context, Intent intent) {
-            //Log.i("GamePlace","Incoming intent");
-            String str = intent.getStringExtra("State");
-            //Log.i("GamePlace","Incoming intent "+str);
             if(intent.getBooleanExtra("Shoot",false)){
                 gameView.addBullet(new Bullet(tanks[other].getXpos(),tanks[other].getYpos(),tanks[other].getHullAngle(),false));
             }else if(intent.getStringExtra("Pos").equals("Position")) {
@@ -299,16 +309,13 @@ public class GamePlace extends AppCompatActivity {
                 float ypos = intent.getFloatExtra("Ypos", 0.0f);
                 float angle = intent.getFloatExtra("Angle", 0.0f);
                 float hullAngle = intent.getFloatExtra("HullAngle", 0.0f);
-                //Log.i("GamePlace","Incoming position & angle" + xpos +" "+ypos+" "+angle);
 
                 tanks[other].setPos(xpos,ypos);
                 tanks[other].setAngle(angle);
                 tanks[other].setHullAngle(hullAngle);
+                //Log.i("GamePlace",tanks[other].getXpos()+" "+tanks[other].getYpos()+" "+tanks[other].getHullAngle());
             }
 
-            if (intent.getBooleanExtra("Arrived",false)){
-               // sended = true;
-            }
 
             }
     }
